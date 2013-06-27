@@ -27,11 +27,13 @@ fi
 # destination name for static library
 STATICLIB=libz.a
 
+SOURCE_DIR=$(dirname $0)
+
 # extract zlib version numbers from zlib.h
-VER=`sed -n -e '/VERSION "/s/.*"\(.*\)".*/\1/p' < zlib.h`
-VER3=`sed -n -e '/VERSION "/s/.*"\([0-9]*\\.[0-9]*\\.[0-9]*\).*/\1/p' < zlib.h`
-VER2=`sed -n -e '/VERSION "/s/.*"\([0-9]*\\.[0-9]*\)\\..*/\1/p' < zlib.h`
-VER1=`sed -n -e '/VERSION "/s/.*"\([0-9]*\)\\..*/\1/p' < zlib.h`
+VER=`sed -n -e '/VERSION "/s/.*"\(.*\)".*/\1/p' < $SOURCE_DIR/zlib.h`
+VER3=`sed -n -e '/VERSION "/s/.*"\([0-9]*\\.[0-9]*\\.[0-9]*\).*/\1/p' < $SOURCE_DIR/zlib.h`
+VER2=`sed -n -e '/VERSION "/s/.*"\([0-9]*\\.[0-9]*\)\\..*/\1/p' < $SOURCE_DIR/zlib.h`
+VER1=`sed -n -e '/VERSION "/s/.*"\([0-9]*\)\\..*/\1/p' < $SOURCE_DIR/zlib.h`
 
 # establish commands for library building
 if "${CROSS_PREFIX}ar" --version >/dev/null 2>/dev/null || test $? -lt 126; then
@@ -87,8 +89,10 @@ case "$1" in
       echo '    [--static] [--64] [--libdir=LIBDIR] [--sharedlibdir=LIBDIR]' | tee -a configure.log
       echo '    [--includedir=INCLUDEDIR] [--archs="-arch i386 -arch x86_64"]' | tee -a configure.log
         exit 0 ;;
+    --host=*) host=`echo $1 | sed 's/.*=//'`; shift ;;
+    --build=*) build=`echo $1 | sed 's/.*=//'`; shift ;;
     -p*=* | --prefix=*) prefix=`echo $1 | sed 's/.*=//'`; shift ;;
-    -e*=* | --eprefix=*) exec_prefix=`echo $1 | sed 's/.*=//'`; shift ;;
+    -e*=* | --eprefix=* | --exec-prefix=*) exec_prefix=`echo $1 | sed 's/.*=//'`; shift ;;
     -l*=* | --libdir=*) libdir=`echo $1 | sed 's/.*=//'`; shift ;;
     --sharedlibdir=*) sharedlibdir=`echo $1 | sed 's/.*=//'`; shift ;;
     -i*=* | --includedir=*) includedir=`echo $1 | sed 's/.*=//'`;shift ;;
@@ -198,9 +202,9 @@ if test "$gcc" -eq 1 && ($cc -c $cflags $test.c) >> configure.log 2>&1; then
   fi
   case "$uname" in
   Linux* | linux* | GNU | GNU/* | solaris*)
-        LDSHARED=${LDSHARED-"$cc -shared -Wl,-soname,libz.so.1,--version-script,zlib.map"} ;;
+        LDSHARED=${LDSHARED-"$cc -shared -Wl,-soname,libz.so.1,--version-script,$SOURCE_DIR/zlib.map"} ;;
   *BSD | *bsd* | DragonFly)
-        LDSHARED=${LDSHARED-"$cc -shared -Wl,-soname,libz.so.1,--version-script,zlib.map"}
+        LDSHARED=${LDSHARED-"$cc -shared -Wl,-soname,libz.so.1,--version-script,$SOURCE_DIR/zlib.map"}
         LDCONFIG="ldconfig -m" ;;
   CYGWIN* | Cygwin* | cygwin* | OS/2*)
         EXE='.exe' ;;
@@ -428,7 +432,7 @@ else
 fi
 
 # copy clean zconf.h for subsequent edits
-cp -p zconf.h.in zconf.h
+cp -p $SOURCE_DIR/zconf.h.in zconf.h
 
 echo >> configure.log
 
@@ -763,7 +767,8 @@ echo >> configure.log
 echo >> configure.log
 
 # udpate Makefile with the configure results
-sed < Makefile.in "
+sed < $SOURCE_DIR/Makefile.in "
+/^SRC *=/s#=.*#=$SOURCE_DIR#
 /^CC *=/s#=.*#=$CC#
 /^CFLAGS *=/s#=.*#=$CFLAGS#
 /^SFLAGS *=/s#=.*#=$SFLAGS#
@@ -793,7 +798,7 @@ sed < Makefile.in "
 " > Makefile
 
 # create zlib.pc with the configure results
-sed < zlib.pc.in "
+sed < $SOURCE_DIR/zlib.pc.in "
 /^CC *=/s#=.*#=$CC#
 /^CFLAGS *=/s#=.*#=$CFLAGS#
 /^CPP *=/s#=.*#=$CPP#
